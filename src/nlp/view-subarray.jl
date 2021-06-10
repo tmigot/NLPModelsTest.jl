@@ -36,34 +36,6 @@ function view_subarray_nlp(nlp; exclude = [])
 
     for I = Vidxs
       xv = @view x[I]
-      for foo in setdiff([obj, grad, hess], exclude)
-        @test foo(nlp, x[I]) ≈ foo(nlp, xv)
-      end
-
-      if hess_coord ∉ exclude
-        vals1 = hess_coord(nlp, x[I])
-        vals2 = hess_coord(nlp, xv)
-        @test vals1 ≈ vals2
-      end
-
-      if m > 0
-        for foo in setdiff([cons, jac], exclude)
-          @test foo(nlp, x[I]) ≈ foo(nlp, xv)
-        end
-        if jac_coord ∉ exclude
-          vals1 = jac_coord(nlp, x[I])
-          vals2 = jac_coord(nlp, xv)
-          @test vals1 ≈ vals2
-        end
-      end
-
-      if hess ∉ exclude
-        for J = Cidxs
-          yv = @view y[J]
-          @test hess(nlp, x[I], y[J]) ≈ hess(nlp, xv, yv)
-          yv = @view y[J]
-        end
-      end
 
       if hess_coord ∉ exclude
         for J = Cidxs
@@ -84,6 +56,17 @@ function view_subarray_nlp(nlp; exclude = [])
           grad!(nlp,   xv,  g); @test g ≈ g2[J]
         end
       end
+
+      #=
+      if hess_coord ∉ exclude
+        for J = Vidxs
+          gv = @view g2[J]
+          hess_coord!(nlp, x[I],  g)
+          hess_coord!(nlp,   xv, gv); @test g ≈ g2[J]
+          hess_coord!(nlp,   xv,  g); @test g ≈ g2[J]
+        end
+      end
+      =#
 
       if cons ∉ exclude
         for J = Cidxs
@@ -123,16 +106,12 @@ function view_subarray_nlp(nlp; exclude = [])
         for J = Vidxs, K in Vidxs
           vv = @view v[J]
           hvv = @view hv2[K]
-          @test hprod(nlp, x[I], v[J]) ≈ hprod(nlp, xv, vv)
           hprod!(nlp, x[I], v[J],  hv)
-          hprod!(nlp, x[I], v[J], hvv); @test hv ≈ hv2[K]
           hprod!(nlp,   xv,   vv, hvv); @test hv ≈ hv2[K]
           hprod!(nlp,   xv,   vv,  hv); @test hv ≈ hv2[K]
           for P in Cidxs
             yv = @view y[P]
-            @test hprod(nlp, x[I], y[P], v[J]) ≈ hprod(nlp, xv, yv, vv)
             hprod!(nlp, x[I], y[P], v[J],  hv)
-            hprod!(nlp, x[I], y[P], v[J], hvv); @test hv ≈ hv2[K]
             hprod!(nlp,   xv,   yv,   vv, hvv); @test hv ≈ hv2[K]
             hprod!(nlp,   xv,   yv,   vv,  hv); @test hv ≈ hv2[K]
           end

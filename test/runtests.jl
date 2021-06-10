@@ -1,11 +1,11 @@
 using NLPModels, NLPModelsTest, Test
 
-@testset "NLP tests" begin
+@time @testset "NLP tests" begin
   for p in NLPModelsTest.nlp_problems
     @testset "Problem $p" begin
       nlp = eval(Symbol(p))()
       @testset "Consistency" begin
-        consistent_nlps([nlp, nlp], exclude = [])
+        consistent_nlps([nlp, nlp], exclude = [], derivative_check=true)
       end
       @testset "Check dimensions" begin
         check_nlp_dimensions(nlp, exclude = [])

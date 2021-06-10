@@ -12,7 +12,15 @@ In other words, if you create two models of the same problem, they should be con
 
 The keyword `exclude` can be used to pass functions to be ignored, if some of the models don't implement that function.
 """
-function consistent_nlps(nlps; exclude=[ghjvprod], test_meta=true, test_slack=true, rtol=1.0e-8)
+function consistent_nlps(
+  nlps;
+  exclude=[ghjvprod],
+  test_meta=true,
+  test_slack=true,
+  test_qn=true,
+  derivative_check=true,
+  rtol=1.0e-8,
+)
   consistent_counters(nlps)
   test_meta && consistent_meta(nlps, rtol=rtol)
   consistent_functions(nlps, rtol=rtol, exclude=exclude)
@@ -21,18 +29,22 @@ function consistent_nlps(nlps; exclude=[ghjvprod], test_meta=true, test_slack=tr
     reset!(nlp)
   end
   consistent_counters(nlps)
-  for nlp in nlps
-    @assert length(gradient_check(nlp)) == 0
-    @assert length(jacobian_check(nlp)) == 0
-    @assert sum(map(length, values(hessian_check(nlp)))) == 0
-    @assert sum(map(length, values(hessian_check_from_grad(nlp)))) == 0
+  if derivative_check
+    for nlp in nlps
+      @assert length(gradient_check(nlp)) == 0
+      @assert length(jacobian_check(nlp)) == 0
+      @assert sum(map(length, values(hessian_check(nlp)))) == 0
+      @assert sum(map(length, values(hessian_check_from_grad(nlp)))) == 0
+    end
   end
 
-  # Test Quasi-Newton models
-  qnmodels = [[LBFGSModel(nlp) for nlp in nlps];
-              [LSR1Model(nlp) for nlp in nlps]]
-  consistent_functions([nlps; qnmodels], exclude=[hess, hess_coord, hprod, ghjvprod] ∪ exclude)
-  consistent_counters([nlps; qnmodels])
+  if test_qn
+    # Test Quasi-Newton models
+    qnmodels = [[LBFGSModel(nlp) for nlp in nlps];
+                [LSR1Model(nlp) for nlp in nlps]]
+    consistent_functions([nlps; qnmodels], exclude=[hess, hess_coord, hprod, ghjvprod] ∪ exclude)
+    consistent_counters([nlps; qnmodels])
+  end
 
   if test_slack && has_inequalities(nlps[1])
     reset!.(nlps)
@@ -142,8 +154,6 @@ function consistent_functions(nlps; rtol=1.0e-8, exclude=[])
       for j = i+1:N
         @test isapprox(Hs[i], Hs[j], atol=rtol * max(Hmin, 1.0))
       end
-      V = hess_coord(nlps[i], x, obj_weight=0.0)
-      @test norm(V) ≈ 0
       σ = 3.14
       V = hess_coord(nlps[i], x, obj_weight=σ)
       I, J = hess_structure(nlps[i])
@@ -162,8 +172,6 @@ function consistent_functions(nlps; rtol=1.0e-8, exclude=[])
       for j = i+1:N
         @test isapprox(Hs[i], Hs[j], atol=rtol * max(Hmin, 1.0))
       end
-      tmp_nn = hess(nlps[i], x, obj_weight=0.0)
-      @test norm(tmp_nn) ≈ 0
       σ = 3.14
       tmp_nn = hess(nlps[i], x, obj_weight=σ)
       @test isapprox(σ*Hs[i], tmp_nn, atol=rtol * max(Hmin, 1.0))
@@ -369,8 +377,6 @@ function consistent_functions(nlps; rtol=1.0e-8, exclude=[])
         for j = i+1:N
           @test isapprox(Ls[i], Ls[j], atol=rtol * max(Lmin, 1.0))
         end
-        V = hess_coord(nlps[i], x, 0*y, obj_weight=0.0)
-        @test norm(V) ≈ 0
         σ = 3.14
         V = hess_coord(nlps[i], x, σ*y, obj_weight=σ)
         I, J = hess_structure(nlps[i])
@@ -389,8 +395,6 @@ function consistent_functions(nlps; rtol=1.0e-8, exclude=[])
         for j = i+1:N
           @test isapprox(Ls[i], Ls[j], atol=rtol * max(Lmin, 1.0))
         end
-        tmp_nn = hess(nlps[i], x, 0*y, obj_weight = 0.0)
-        @test norm(tmp_nn) ≈ 0
         σ = 3.14
         tmp_nn = hess(nlps[i], x, σ*y, obj_weight = σ)
         @test isapprox(σ*Ls[i], tmp_nn, atol=rtol * max(Hmin, 1.0))
@@ -408,7 +412,7 @@ function consistent_functions(nlps; rtol=1.0e-8, exclude=[])
     end
 
     if !(hprod in exclude)
-      for σ = [1.0; 0.5; 0.0]
+      for σ = [1.0; 0.5]
         Lps = Any[hprod(nlp, x, y, v, obj_weight=σ) for nlp in nlps]
         Hopvs = Any[hess_op(nlp, x, y, obj_weight=σ) * v for nlp in nlps]
         Lpmin = minimum(map(norm, Lps))
