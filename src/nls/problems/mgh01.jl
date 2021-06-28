@@ -136,7 +136,7 @@ end
 function NLPModels.hess(nls::MGH01, x::AbstractVector{T}; obj_weight = 1.0) where {T}
   @lencheck 2 x
   increment!(nls, :neval_hess)
-  return obj_weight * [T(1) - 200 * x[2]+600 * x[1]^2 T(0); -200*x[1] T(100)]
+  return Symmetric(obj_weight * [T(1) - 200 * x[2]+600 * x[1]^2 T(0); -200*x[1] T(100)], :L)
 end
 
 function NLPModels.hess_structure!(nls::MGH01, rows::AbstractVector{Int}, cols::AbstractVector{Int})
@@ -156,7 +156,7 @@ function NLPModels.hess_coord!(
 )
   @lencheck 2 x
   @lencheck 3 vals
-  Hx = hess(nls, x, obj_weight = obj_weight)
+  Hx = hess(nls, x, obj_weight = obj_weight).data
   k = 1
   for j = 1:2
     for i = j:2

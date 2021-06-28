@@ -59,7 +59,7 @@ function NLPModels.hess(nlp::BROWNDEN, x::AbstractVector{T}; obj_weight = 1.0) w
   β(x, i) = x[3] + x[4] * sin(T(i) / 5) - cos(T(i) / 5)
   Hx = zeros(T, 4, 4)
   if obj_weight == 0
-    return Hx
+    return Symmetric(Hx, :L)
   end
   for i = 1:20
     αi, βi = α(x, i), β(x, i)
@@ -68,7 +68,7 @@ function NLPModels.hess(nlp::BROWNDEN, x::AbstractVector{T}; obj_weight = 1.0) w
     θi = αi^2 + βi^2
     Hx += (4vi * vi' + 4wi * wi') * θi + 8zi * zi'
   end
-  return T(obj_weight) * tril(Hx)
+  return Symmetric(T(obj_weight) * Hx, :L)
 end
 
 function NLPModels.hess_structure!(
@@ -92,7 +92,7 @@ function NLPModels.hess_coord!(
 )
   @lencheck 4 x
   @lencheck 10 vals
-  Hx = hess(nlp, x, obj_weight = obj_weight)
+  Hx = hess(nlp, x, obj_weight = obj_weight).data
   k = 1
   for j = 1:4
     for i = j:4

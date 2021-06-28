@@ -233,7 +233,7 @@ function consistent_functions(nlps; rtol = 1.0e-8, exclude = [])
       V = hess_coord(nlp, x, obj_weight = 0.5)
       I, J = hess_structure(nlp)
       @test length(I) == length(J) == length(V) == nlp.meta.nnzh
-      @test sparse(I, J, V, n, n) == Hx
+      @test Symmetric(sparse(I, J, V, n, n), :L) == Hx
     end
   end
 
@@ -416,7 +416,7 @@ function consistent_functions(nlps; rtol = 1.0e-8, exclude = [])
         V = hess_coord(nlp, x, y, obj_weight = 0.5)
         I, J = hess_structure(nlp)
         @test length(I) == length(J) == length(V) == nlp.meta.nnzh
-        @test sparse(I, J, V, n, n) == Hx
+        @test Symmetric(sparse(I, J, V, n, n), :L) == Hx
       end
     end
 

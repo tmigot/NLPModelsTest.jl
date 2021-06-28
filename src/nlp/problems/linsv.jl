@@ -54,7 +54,7 @@ function NLPModels.hess(nlp::LINSV, x::AbstractVector{T}; obj_weight = one(T)) w
   @lencheck 2 x
   increment!(nlp, :neval_hess)
   H = zeros(T, 2, 2)
-  return H
+  return Symmetric(H, :L)
 end
 
 function NLPModels.hess_structure!(nlp::LINSV, rows::AbstractVector{Int}, cols::AbstractVector{Int})

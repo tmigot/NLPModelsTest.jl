@@ -179,7 +179,7 @@ end
 function NLPModels.hess(nls::LLS, x::AbstractVector{T}; obj_weight = 1.0) where {T}
   @lencheck 2 x
   increment!(nls, :neval_hess)
-  return obj_weight * [2.0 0.0; 0.0 3.0]
+  return Symmetric(obj_weight * [2.0 0.0; 0.0 3.0], :L)
 end
 
 function NLPModels.hess_structure!(nls::LLS, rows::AbstractVector{Int}, cols::AbstractVector{Int})
@@ -194,7 +194,7 @@ end
 function NLPModels.hess_coord!(nls::LLS, x::AbstractVector, vals::AbstractVector; obj_weight = 1.0)
   @lencheck 2 x
   @lencheck 3 vals
-  Hx = hess(nls, x, obj_weight = obj_weight)
+  Hx = hess(nls, x, obj_weight = obj_weight).data
   k = 1
   for j = 1:2
     for i = j:2

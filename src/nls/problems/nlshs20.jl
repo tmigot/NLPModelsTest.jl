@@ -186,7 +186,7 @@ end
 function NLPModels.hess(nls::NLSHS20, x::AbstractVector{T}; obj_weight = 1.0) where {T}
   @lencheck 2 x
   increment!(nls, :neval_hess)
-  return obj_weight * [T(1) - 200 * x[2]+600 * x[1]^2 T(0); -200*x[1] T(100)]
+  return Symmetric(obj_weight * [T(1) - 200 * x[2]+600 * x[1]^2 T(0); -200*x[1] T(100)], :L)
 end
 
 function NLPModels.hess(
@@ -198,10 +198,10 @@ function NLPModels.hess(
   @lencheck 2 x
   @lencheck 3 y
   increment!(nls, :neval_hess)
-  return [
+  return Symmetric([
     obj_weight*(T(1) - 200 * x[2] + 600 * x[1]^2)+2*y[2]+2*y[3] T(0)
     -obj_weight*200*x[1] obj_weight*T(100)+2*y[1]+2*y[3]
-  ]
+  ], :L)
 end
 
 function NLPModels.hess_structure!(
@@ -225,7 +225,7 @@ function NLPModels.hess_coord!(
 )
   @lencheck 2 x
   @lencheck 3 vals
-  Hx = hess(nls, x, obj_weight = obj_weight)
+  Hx = hess(nls, x, obj_weight = obj_weight).data
   k = 1
   for j = 1:2
     for i = j:2
@@ -246,7 +246,7 @@ function NLPModels.hess_coord!(
   @lencheck 2 x
   @lencheck 3 y
   @lencheck 3 vals
-  Hx = hess(nls, x, y, obj_weight = obj_weight)
+  Hx = hess(nls, x, y, obj_weight = obj_weight).data
   k = 1
   for j = 1:2
     for i = j:2
